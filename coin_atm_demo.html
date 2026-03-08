@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Coin → Lightning</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg:        #0a0e17;
+    --surface:   #111827;
+    --surface2:  #1a2235;
+    --border:    #1f2d45;
+    --accent:    #f5a623;
+    --accent2:   #f7c564;
+    --lightning: #ffe566;
+    --green:     #22c55e;
+    --amber:     #f59e0b;
+    --red:       #ef4444;
+    --text:      #f0f4ff;
+    --muted:     #6b7fa3;
+    --dim:       #3a4a6b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── animated background grid ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,166,35,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── top status bar ── */
+  .topbar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--lightning);
+    letter-spacing: 0.05em;
+  }
+
+  .bolt {
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px #ffe566aa);
+    animation: pulse-bolt 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-bolt {
+    0%, 100% { filter: drop-shadow(0 0 6px #ffe566aa); }
+    50%       { filter: drop-shadow(0 0 18px #ffe566ff); }
+  }
+
+  .rate-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+
+  .rate-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: blink-dot 3s ease-in-out infinite;
+  }
+
+  @keyframes blink-dot { 0%,90%,100%{opacity:1} 95%{opacity:0.2} }
+
+  /* ── fuel gauge ── */
+  .gauge-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gauge-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .gauge-segments {
+    display: flex;
+    gap: 4px;
+  }
+
+  .seg {
+    width: 22px;
+    height: 10px;
+    border-radius: 3px;
+    transition: all 0.6s ease;
+  }
+
+  .seg.green  { background: var(--green);  box-shadow: 0 0 8px var(--green); }
+  .seg.amber  { background: var(--amber);  box-shadow: 0 0 8px var(--amber); }
+  .seg.red    { background: var(--red);    box-shadow: 0 0 8px var(--red); }
+  .seg.flash  { animation: flash-seg 0.8s ease-in-out infinite; }
+  .seg.empty  { background: var(--dim); box-shadow: none; }
+
+  @keyframes flash-seg { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+  /* ── main layout ── */
+  .main {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── left panel ── */
+  .left {
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    border-right: 1px solid var(--border);
+  }
+
+  /* ── steps ── */
+  .steps-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+
+  .step.active {
+    border-color: var(--accent);
+    background: rgba(245,166,35,0.06);
+  }
+
+  .step.done {
+    border-color: var(--green);
+    background: rgba(34,197,94,0.05);
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--dim);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .step.active .step-num {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .step.done .step-num {
+    background: var(--green);
+    border-color: var(--green);
+    color: #000;
+  }
+
+  .step-text { font-size: 14px; font-weight: 600; color: var(--text); }
+  .step-sub  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .step.active .step-text { color: var(--accent2); }
+  .step.done  .step-text  { color: var(--green); }
+
+  /* ── transaction panel ── */
+  .tx-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: opacity 0.4s, transform 0.4s;
+  }
+
+  .tx-panel.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+
+  .tx-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .tx-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .tx-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .tx-value.big {
+    font-size: 28px;
+    color: var(--lightning);
+    text-shadow: 0 0 20px rgba(255,229,102,0.4);
+  }
+
+  .tx-divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── QR area ── */
+  .qr-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .qr-wrap {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 0 40px rgba(245,166,35,0.2);
+    position: relative;
+  }
+
+  .qr-corner {
+    position: absolute;
+    width: 16px; height: 16px;
+    border-color: var(--accent);
+    border-style: solid;
+  }
+  .qr-corner.tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
+  .qr-corner.tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
+  .qr-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
+  .qr-corner.br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
+
+  .qr-hint {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ── countdown ── */
+  .countdown-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .countdown-bar-bg {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .countdown-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s linear, background 1s;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .countdown-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* ── PAID overlay ── */
+  .paid-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,14,23,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    border-radius: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+    z-index: 20;
+  }
+
+  .paid-overlay.show { opacity: 1; pointer-events: all; }
+
+  .paid-icon {
+    font-size: 56px;
+    animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes pop-in { from{transform:scale(0)} to{transform:scale(1)} }
+
+  .paid-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--green);
+    text-shadow: 0 0 30px var(--green);
+  }
+
+  .paid-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* ── IDLE screen ── */
+  .idle-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    opacity: 1;
+    transition: opacity 0.4s;
+  }
+  .idle-screen.hidden { display: none; }
+
+  .idle-bolt { font-size: 64px; filter: drop-shadow(0 0 24px #ffe566cc); animation: pulse-bolt 2s ease-in-out infinite; }
+  .idle-title { font-size: 32px; font-weight: 800; color: var(--text); }
+  .idle-sub { font-size: 15px; color: var(--muted); }
+
+  /* ── right panel ── */
+  .right {
+    background: var(--surface);
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .onboard-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .onboard-heading {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .onboard-sub {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+  }
+
+  .blink-qr-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .blink-qr-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px;
+    width: 140px; height: 140px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .blink-url {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  .blink-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(245,166,35,0.08);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+
+  .blink-badge-icon { font-size: 22px; }
+
+  .blink-badge-text { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .blink-badge-text strong { color: var(--accent2); display: block; font-size: 13px; }
+
+  /* ── demo controls ── */
+  .demo-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .demo-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-right: 6px;
+  }
+
+  .btn {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 800; }
+  .btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(239,68,68,0.1); }
+
+  /* ── fuel demo controls ── */
+  .fuel-controls { display: flex; align-items: center; gap: 6px; }
+  .fuel-controls span { font-size: 11px; color: var(--muted); }
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <span class="bolt">⚡</span>
+      SATS ATM
+    </div>
+    <div class="rate-badge">
+      <div class="rate-dot"></div>
+      <span id="rate-display">€1.00 = 1,612 sats</span>
+    </div>
+  </div>
+
+  <div class="gauge-wrap">
+    <span class="gauge-label">Wallet</span>
+    <div class="gauge-segments" id="gauge">
+      <div class="seg green" id="seg1"></div>
+      <div class="seg green" id="seg2"></div>
+      <div class="seg green" id="seg3"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT -->
+  <div class="left">
+
+    <!-- IDLE -->
+    <div class="idle-screen" id="idle-screen">
+      <div class="idle-bolt">⚡</div>
+      <div class="idle-title">Buy Bitcoin</div>
+      <div class="idle-sub">Insert coins to get started</div>
+    </div>
+
+    <!-- ACTIVE SESSION -->
+    <div id="active-session" style="display:none; flex-direction:column; gap:24px; flex:1;">
+
+      <!-- Steps -->
+      <div>
+        <div class="steps-title">How it works</div>
+        <div class="steps">
+          <div class="step done" id="step1">
+            <div class="step-num" id="step1-num">✓</div>
+            <div>
+              <div class="step-text">Insert coins</div>
+              <div class="step-sub">Maximum €10 per session</div>
+            </div>
+          </div>
+          <div class="step active" id="step2">
+            <div class="step-num" id="step2-num">2</div>
+            <div>
+              <div class="step-text">Scan QR with Blink wallet</div>
+              <div class="step-sub">Point your camera at the code below</div>
+            </div>
+          </div>
+          <div class="step" id="step3">
+            <div class="step-num">3</div>
+            <div>
+              <div class="step-text">Receive your SATs</div>
+              <div class="step-sub">Sent instantly over Lightning</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transaction panel -->
+      <div class="tx-panel" id="tx-panel" style="position:relative;">
+
+        <div class="paid-overlay" id="paid-overlay">
+          <div class="paid-icon">✅</div>
+          <div class="paid-text">Payment Received!</div>
+          <div class="paid-sub" id="paid-sub">3,224 sats sent</div>
+        </div>
+
+        <div class="tx-row">
+          <div class="tx-label">You inserted</div>
+          <div class="tx-value" id="credit-display">€2.00</div>
+        </div>
+        <div class="tx-divider"></div>
+        <div class="tx-row">
+          <div class="tx-label">You receive</div>
+          <div class="tx-value big" id="sats-display">3,224 sats</div>
+        </div>
+        <div class="tx-divider"></div>
+
+        <div class="qr-area">
+          <div class="qr-wrap">
+            <div class="qr-corner tl"></div>
+            <div class="qr-corner tr"></div>
+            <div class="qr-corner bl"></div>
+            <div class="qr-corner br"></div>
+            <div id="qrcode"></div>
+          </div>
+          <div class="qr-hint">Scan with your Lightning wallet to receive sats</div>
+        </div>
+
+        <div class="countdown-wrap">
+          <div class="countdown-bar-bg">
+            <div class="countdown-bar" id="countdown-bar" style="width:100%"></div>
+          </div>
+          <div class="countdown-text" id="countdown-text">Session expires in 60s</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Idle steps (shown in idle) -->
+    <div id="idle-steps" style="display:none; flex-direction:column; gap:10px;">
+      <div class="steps-title">How it works</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div><div class="step-text">Insert coins</div><div class="step-sub">Maximum €10 per session</div></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div><div class="step-text">Scan QR with Blink wallet</div><div class="step-sub">Point your camera at the code</div></div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div><div class="step-text">Receive your SATs</div><div class="step-sub">Sent instantly over Lightning</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div>
+      <div class="onboard-title">New to Bitcoin?</div>
+      <div class="onboard-heading">Get a free<br>Lightning wallet</div>
+      <div class="onboard-sub">Download Blink — free, easy, and ready in 60 seconds.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="blink-qr-wrap">
+      <div class="blink-qr-box" id="blink-qr"></div>
+      <div class="blink-url">blink.sv/download</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="blink-badge">
+      <div class="blink-badge-icon">⚡</div>
+      <div class="blink-badge-text">
+        <strong>Blink Wallet</strong>
+        Free · No bank needed · Instant Lightning payments
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DEMO CONTROLS -->
+<div class="demo-bar">
+  <span class="demo-label">Demo controls →</span>
+  <button class="btn primary" onclick="insertCoins(2.00)">Insert €2</button>
+  <button class="btn" onclick="insertCoins(5.00)">Insert €5</button>
+  <button class="btn" onclick="insertCoins(10.00)">Insert €10</button>
+  <button class="btn danger" onclick="simulatePaid()">Simulate Payment</button>
+  <button class="btn" onclick="resetSession()">Reset</button>
+  <div class="fuel-controls">
+    <span>Wallet:</span>
+    <button class="btn" onclick="setGauge('high')">High</button>
+    <button class="btn" onclick="setGauge('mid')">Mid</button>
+    <button class="btn" onclick="setGauge('low')">Low</button>
+    <button class="btn danger" onclick="setGauge('critical')">Critical</button>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+const SATS_PER_EURO = 1612;
+let sessionActive = false;
+let countdownVal  = 60;
+let countdownInt  = null;
+let qrGenerated   = false;
+let currentCredit = 0;
+
+// ── Boot: generate Blink download QR (static) ──────────
+new QRCode(document.getElementById('blink-qr'), {
+  text: 'https://blink.sv/download',
+  width: 120, height: 120,
+  colorDark: '#000000', colorLight: '#ffffff',
+  correctLevel: QRCode.CorrectLevel.M
+});
+
+// ── Gauge ──────────────────────────────────────────────
+function setGauge(level) {
+  const s1 = document.getElementById('seg1');
+  const s2 = document.getElementById('seg2');
+  const s3 = document.getElementById('seg3');
+  // reset all
+  [s1,s2,s3].forEach(s => { s.className = 'seg empty'; });
+
+  if (level === 'high') {
+    s1.className = 'seg green';
+    s2.className = 'seg green';
+    s3.className = 'seg green';
+  } else if (level === 'mid') {
+    s1.className = 'seg amber';
+    s2.className = 'seg amber';
+    s3.className = 'seg empty';
+  } else if (level === 'low') {
+    s1.className = 'seg red';
+    s2.className = 'seg empty';
+    s3.className = 'seg empty';
+  } else if (level === 'critical') {
+    s1.className = 'seg red flash';
+    s2.className = 'seg empty';
+    s3.className = 'seg empty';
+  }
+}
+
+// ── Insert coins ───────────────────────────────────────
+function insertCoins(eur) {
+  if (sessionActive) return;
+  sessionActive = true;
+  currentCredit = eur;
+  const sats = Math.round(eur * SATS_PER_EURO);
+
+  document.getElementById('credit-display').textContent = `€${eur.toFixed(2)}`;
+  document.getElementById('sats-display').textContent   = `${sats.toLocaleString()} sats`;
+  document.getElementById('paid-sub').textContent       = `${sats.toLocaleString()} sats sent`;
+
+  // Switch UI
+  document.getElementById('idle-screen').classList.add('hidden');
+  document.getElementById('idle-steps').style.display = 'none';
+  document.getElementById('active-session').style.display = 'flex';
+
+  // Generate payment QR (demo invoice string)
+  if (!qrGenerated) {
+    const demoInvoice = 'lnbc' + sats + 'n1pj9x4ppsp5demo' + Date.now() + 'qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
+    new QRCode(document.getElementById('qrcode'), {
+      text: 'lightning:' + demoInvoice,
+      width: 180, height: 180,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    qrGenerated = true;
+  }
+
+  startCountdown();
+}
+
+// ── Countdown ──────────────────────────────────────────
+function startCountdown() {
+  countdownVal = 60;
+  clearInterval(countdownInt);
+  countdownInt = setInterval(() => {
+    countdownVal--;
+    const pct = (countdownVal / 60) * 100;
+    const bar = document.getElementById('countdown-bar');
+    bar.style.width = pct + '%';
+    bar.style.background = countdownVal > 20 ? 'var(--accent)' :
+                           countdownVal > 10 ? 'var(--amber)' : 'var(--red)';
+    bar.style.boxShadow  = `0 0 8px ${countdownVal > 20 ? 'var(--accent)' : countdownVal > 10 ? 'var(--amber)' : 'var(--red)'}`;
+    document.getElementById('countdown-text').textContent =
+      `Session expires in ${countdownVal}s`;
+    if (countdownVal <= 0) {
+      clearInterval(countdownInt);
+      resetSession();
+    }
+  }, 1000);
+}
+
+// ── Simulate payment ───────────────────────────────────
+function simulatePaid() {
+  if (!sessionActive) return;
+  clearInterval(countdownInt);
+
+  // Step 3 active
+  document.getElementById('step2').className = 'step done';
+  document.getElementById('step2-num').textContent = '✓';
+  document.getElementById('step3').className = 'step active';
+
+  document.getElementById('paid-overlay').classList.add('show');
+
+  setTimeout(() => {
+    document.getElementById('step3').className = 'step done';
+    const s3num = document.getElementById('step3').querySelector('.step-num');
+    if (s3num) s3num.textContent = '✓';
+  }, 600);
+
+  setTimeout(resetSession, 3500);
+}
+
+// ── Reset ──────────────────────────────────────────────
+function resetSession() {
+  clearInterval(countdownInt);
+  sessionActive = false;
+  qrGenerated   = false;
+
+  document.getElementById('paid-overlay').classList.remove('show');
+  document.getElementById('active-session').style.display = 'none';
+  document.getElementById('idle-screen').classList.remove('hidden');
+  document.getElementById('idle-steps').style.display = 'flex';
+
+  // Clear QR
+  document.getElementById('qrcode').innerHTML = '';
+
+  // Reset steps
+  document.getElementById('step1').className = 'step done';
+  document.getElementById('step1-num').textContent = '✓';
+  document.getElementById('step2').className = 'step active';
+  document.getElementById('step2-num').textContent = '2';
+  document.getElementById('step3').className = 'step';
+
+  // Reset bar
+  document.getElementById('countdown-bar').style.width = '100%';
+  document.getElementById('countdown-bar').style.background = 'var(--accent)';
+  document.getElementById('countdown-text').textContent = 'Session expires in 60s';
+}
+
+// ── Init idle steps visible ────────────────────────────
+document.getElementById('idle-steps').style.display = 'flex';
+
+// ── Subtle rate flicker to look live ──────────────────
+setInterval(() => {
+  const base  = 1612;
+  const drift = Math.floor(Math.random() * 6) - 3;
+  document.getElementById('rate-display').textContent =
+    `€1.00 = ${(base + drift).toLocaleString()} sats`;
+}, 8000);
+</script>
+</body>
+</html>
