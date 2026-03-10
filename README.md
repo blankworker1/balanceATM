@@ -150,7 +150,7 @@ Press **Save & Connect**. The ESP32 will test the WiFi connection, save credenti
 
 ---
 
-## Blink wallet setup
+## Blink ATM wallet setup
 
 1. Download the [Blink app](https://blink.sv/download)
 2. Create an account and a BTC wallet
