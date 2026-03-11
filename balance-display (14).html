@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BALANCE</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --white: #ffffff;
+    --black: #111111;
+    --mid:   #888888;
+    --fade:  5000ms;
+    --ease:  cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--white);
+    color: var(--black);
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    cursor: none;
+  }
+  button { cursor: pointer; }
+
+  /* ─────────────────────────────────────────
+     SPLASH
+  ───────────────────────────────────────── */
+  #splash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity var(--fade) var(--ease);
+  }
+  #splash.hidden { opacity: 0; pointer-events: none; }
+
+  .splash-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-size: min(20vw, 38vh);
+    letter-spacing: 0.04em;
+    color: var(--black);
+    text-transform: uppercase;
+    user-select: none;
+    line-height: 1;
+    text-align: center;
+    /* padding absorbs the trailing letter-spacing on the last character */
+    padding: 0 2vw;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .splash-sub {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(14px, 4vw, 38px);
+    color: var(--mid);
+    letter-spacing: 0.12em;
+    text-align: center;
+    /* lower quartile — positioned below centre */
+    position: absolute;
+    bottom: 25%;
+    left: 0; right: 0;
+  }
+
+  /* ─────────────────────────────────────────
+     TIP DETAIL
+  ───────────────────────────────────────── */
+  #tipdetail {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fade) var(--ease);
+  }
+  #tipdetail.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* Content block — anchors top or bottom */
+  .tip-block {
+    position: absolute;
+    left:  clamp(48px, 9vw, 120px);
+    right: clamp(48px, 9vw, 120px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 2vw, 24px);
+  }
+  .tip-block.top    { top:    clamp(80px, 13vw, 160px); }
+  .tip-block.bottom { bottom: clamp(80px, 13vw, 160px); }
+
+  .tip-amount {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-size: min(22vw, 34vh);
+    line-height: 0.88;
+    letter-spacing: -0.01em;
+    color: var(--black);
+  }
+  .tip-amount-unit {
+    font-size: 0.24em;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    color: var(--mid);
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 0.4em;
+  }
+
+  .tip-artwork {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: clamp(18px, 4.5vw, 48px);
+    color: var(--black);
+    letter-spacing: 0.03em;
+  }
+
+  .tip-memo {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(15px, 3.5vw, 36px);
+    color: var(--mid);
+    line-height: 1.55;
+    max-width: 34ch;
+  }
+
+  /* ─────────────────────────────────────────
+     POWERED BY BLINK — fixed, tip screen only
+  ───────────────────────────────────────── */
+  .powered-by {
+    position: fixed;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(8px, 1.5vw, 16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--fade) var(--ease);
+  }
+  .powered-by.visible {
+    opacity: 1;
+  }
+  .powered-by-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-size: clamp(10px, 2vw, 17px);
+    color: var(--mid);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .blink-logo {
+    height: clamp(16px, 3.2vw, 28px);
+    width: auto;
+    display: block;
+  }
+  .test-buttons {
+    position: fixed;
+    top: 1.5rem;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: clamp(12px, 3vw, 32px);
+    z-index: 100;
+  }
+  .test-btn {
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(10px, 2vw, 14px);
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    color: #cccccc;
+    border: 1px solid #e0e0e0;
+    background: transparent;
+    padding: 0.6em 1.6em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.25s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .test-btn:hover, .test-btn:active {
+    color: var(--white);
+    background: var(--black);
+    border-color: var(--black);
+  }
+
+  /* ─────────────────────────────────────────
+     LOADING
+  ───────────────────────────────────────── */
+  #loading {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    transition: opacity 2s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+
+  .loading-word {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 300;
+    font-size: clamp(40px, 14vw, 160px);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #dddddd;
+    animation: breathe 2.5s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; }
+    50%       { opacity: 1;   }
+  }
+
+  /* ─────────────────────────────────────────
+     ERROR
+  ───────────────────────────────────────── */
+  .error-badge {
+    position: fixed;
+    bottom: 1rem; left: 1.5rem;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: #cc4444;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ CONFIG — edit this section ══════════════ -->
+<script>
+const CONFIG = {
+  BLINK_API:     'https://api.blink.sv/graphql',
+  POLL_INTERVAL: 10000,
+
+  // Hold time with no message (ms)
+  BASE_HOLD_MS:  8000,
+  // Additional ms per character of memo (scales hold with reading time)
+  MS_PER_CHAR:   80,
+
+  ARTWORKS: [
+    { name: "Open Secret #1",  apiKey: "PASTE_API_KEY_1",  walletId: "PASTE_WALLET_ID_1"  },
+    { name: "Open Secret #2",  apiKey: "PASTE_API_KEY_2",  walletId: "PASTE_WALLET_ID_2"  },
+    { name: "Open Secret #3",  apiKey: "PASTE_API_KEY_3",  walletId: "PASTE_WALLET_ID_3"  },
+    { name: "Open Secret #4",  apiKey: "PASTE_API_KEY_4",  walletId: "PASTE_WALLET_ID_4"  },
+    { name: "Open Secret #5",  apiKey: "PASTE_API_KEY_5",  walletId: "PASTE_WALLET_ID_5"  },
+    { name: "Open Secret #6",  apiKey: "PASTE_API_KEY_6",  walletId: "PASTE_WALLET_ID_6"  },
+    { name: "Open Secret #7",  apiKey: "PASTE_API_KEY_7",  walletId: "PASTE_WALLET_ID_7"  },
+    { name: "Open Secret #8",  apiKey: "PASTE_API_KEY_8",  walletId: "PASTE_WALLET_ID_8"  },
+    { name: "Open Secret #9",  apiKey: "PASTE_API_KEY_9",  walletId: "PASTE_WALLET_ID_9"  },
+    { name: "Open Secret #10", apiKey: "PASTE_API_KEY_10", walletId: "PASTE_WALLET_ID_10" },
+    { name: "Open Secret #11", apiKey: "PASTE_API_KEY_11", walletId: "PASTE_WALLET_ID_11" },
+    { name: "Open Secret #12", apiKey: "PASTE_API_KEY_12", walletId: "PASTE_WALLET_ID_12" },
+    { name: "Open Secret #13", apiKey: "PASTE_API_KEY_13", walletId: "PASTE_WALLET_ID_13" },
+    { name: "Open Secret #14", apiKey: "PASTE_API_KEY_14", walletId: "PASTE_WALLET_ID_14" },
+    { name: "Open Secret #15", apiKey: "PASTE_API_KEY_15", walletId: "PASTE_WALLET_ID_15" },
+    { name: "Open Secret #16", apiKey: "PASTE_API_KEY_16", walletId: "PASTE_WALLET_ID_16" },
+    { name: "Open Secret #17", apiKey: "PASTE_API_KEY_17", walletId: "PASTE_WALLET_ID_17" },
+    { name: "Open Secret #18", apiKey: "PASTE_API_KEY_18", walletId: "PASTE_WALLET_ID_18" },
+    { name: "Open Secret #19", apiKey: "PASTE_API_KEY_19", walletId: "PASTE_WALLET_ID_19" },
+    { name: "Open Secret #20", apiKey: "PASTE_API_KEY_20", walletId: "PASTE_WALLET_ID_20" },
+    { name: "Open Secret #21", apiKey: "PASTE_API_KEY_21", walletId: "PASTE_WALLET_ID_21" },
+  ]
+};
+</script>
+<!-- ══════════════ END CONFIG ══════════════ -->
+
+<!-- Loading -->
+<div id="loading"><div class="loading-word">Balance</div></div>
+
+<!-- Splash — always white, BALANCE centred -->
+<div id="splash">
+  <div class="splash-title">Balance</div>
+  <div class="splash-sub">Tip the Art</div>
+</div>
+
+<!-- Tip detail — fades in over splash -->
+<div id="tipdetail">
+  <div class="tip-block top" id="tip-block">
+    <div class="tip-amount" id="td-amount"></div>
+    <div class="tip-artwork" id="td-artwork"></div>
+    <div class="tip-memo" id="td-memo"></div>
+  </div>
+</div>
+
+<!-- Powered by Blink — fixed, same row as error badge, fades with tip sequence -->
+<div class="powered-by" id="powered-by">
+  <span class="powered-by-label">powered by</span>
+  <svg class="blink-logo" viewBox="0 0 120 32" xmlns="http://www.w3.org/2000/svg" aria-label="Blink">
+    <defs>
+      <linearGradient id="blinkGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#FFB32C"/>
+        <stop offset="100%" stop-color="#FB5607"/>
+      </linearGradient>
+    </defs>
+    <polygon points="18,2 8,18 15,18 12,30 24,12 17,12" fill="url(#blinkGrad)"/>
+    <text x="32" y="24"
+      font-family="'Ubuntu', 'Nunito', sans-serif"
+      font-weight="700"
+      font-style="italic"
+      font-size="22"
+      fill="url(#blinkGrad)"
+      letter-spacing="0.5">BLINK</text>
+  </svg>
+</div>
+
+<!-- Test buttons — remove before event -->
+<div class="test-buttons">
+  <button class="test-btn" onclick="simulateTip(100)">100 sats</button>
+  <button class="test-btn" onclick="simulateTip(500)">500 sats</button>
+  <button class="test-btn" onclick="simulateTip(1000)">1000 sats</button>
+</div>
+
+<div class="error-badge" id="error-badge">⚠ API error</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+const state = {
+  balances: {},
+  loaded:   false,
+};
+
+let positionToggle  = false; // alternates top / bottom
+let sequenceRunning = false;
+let queuedTip       = null;
+
+// ── BLINK API ──────────────────────────────────────────────
+const TX_QUERY = `
+  query GetTransactions($walletId: WalletId!, $first: Int!) {
+    me {
+      defaultAccount {
+        walletById(walletId: $walletId) {
+          transactions(first: $first) {
+            edges {
+              node {
+                id
+                status
+                direction
+                settlementAmount
+                memo
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+async function fetchWalletData(artwork) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-API-KEY': artwork.apiKey,
+  };
+  const [balRes, txRes] = await Promise.all([
+    fetch(CONFIG.BLINK_API, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        query: `query { me { defaultAccount { wallets { id balance } } } }`
+      })
+    }),
+    fetch(CONFIG.BLINK_API, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        query: TX_QUERY,
+        variables: { walletId: artwork.walletId, first: 3 }
+      })
+    })
+  ]);
+
+  const balData = await balRes.json();
+  const txData  = await txRes.json();
+
+  let balance = 0;
+  const wallets = balData?.data?.me?.defaultAccount?.wallets || [];
+  const w = wallets.find(w => w.id === artwork.walletId);
+  if (w) balance = w.balance;
+
+  const edges = txData?.data?.me?.defaultAccount?.walletById?.transactions?.edges || [];
+  const latestMemo = edges
+    .map(e => e.node)
+    .filter(t => t.status === 'SUCCESS' && t.direction === 'RECEIVE')[0]?.memo || '';
+
+  return { balance, latestMemo };
+}
+
+async function pollAll() {
+  let anyError = false;
+  const results = await Promise.allSettled(
+    CONFIG.ARTWORKS.map(a => fetchWalletData(a).then(r => ({ artwork: a, ...r })))
+  );
+
+  results.forEach(result => {
+    if (result.status === 'fulfilled') {
+      const { artwork, balance, latestMemo } = result.value;
+      const prev = state.balances[artwork.walletId] ?? null;
+      if (prev !== null && balance > prev) {
+        revealOnTip({
+          amount:  balance - prev,
+          artwork: artwork.name,
+          comment: latestMemo,
+        });
+      }
+      state.balances[artwork.walletId] = balance;
+    } else {
+      anyError = true;
+    }
+  });
+
+  document.getElementById('error-badge').style.display = anyError ? 'block' : 'none';
+
+  if (!state.loaded) {
+    state.loaded = true;
+    document.getElementById('loading').classList.add('hidden');
+  }
+}
+
+// ── SEQUENCE ───────────────────────────────────────────────
+//
+//  Splash fades out ─┐
+//                    ├─ simultaneously (5s)
+//  Tip detail fades in ─┘
+//
+//  Hold (8s base + reading time)
+//
+//  Tip detail fades out (5s)
+//  Halfway through fade-out, splash fades back in
+//  → gentle overlap, never pure white
+
+const FADE_MS = 5000;
+
+function holdDuration(comment) {
+  return CONFIG.BASE_HOLD_MS + (comment ? comment.length * CONFIG.MS_PER_CHAR : 0);
+}
+
+function revealOnTip(tip) {
+  if (sequenceRunning) { queuedTip = tip; return; }
+  runSequence(tip);
+}
+
+function runSequence(tip) {
+  sequenceRunning = true;
+  queuedTip = null;
+
+  const splash  = document.getElementById('splash');
+  const detail  = document.getElementById('tipdetail');
+  const block   = document.getElementById('tip-block');
+  const powBy   = document.getElementById('powered-by');
+  const hold    = holdDuration(tip.comment);
+
+  // Alternate position top / bottom
+  positionToggle = !positionToggle;
+  block.className = 'tip-block ' + (positionToggle ? 'bottom' : 'top');
+
+  // Populate
+  document.getElementById('td-amount').innerHTML =
+    `${tip.amount.toLocaleString('en-US', {useGrouping: false})}<span class="tip-amount-unit">sats</span>`;
+  document.getElementById('td-artwork').textContent = tip.artwork;
+  const memoEl = document.getElementById('td-memo');
+  if (tip.comment) {
+    memoEl.textContent    = `"${tip.comment}"`;
+    memoEl.style.display  = '';
+  } else {
+    memoEl.style.display  = 'none';
+  }
+
+  // Step 1 — fade splash out, detail + powered-by in simultaneously
+  splash.classList.add('hidden');
+  detail.classList.add('visible');
+  powBy.classList.add('visible');
+
+  // Step 2 — after hold, fade detail out
+  setTimeout(() => {
+    detail.classList.remove('visible');
+    powBy.classList.remove('visible');
+
+    // Step 3 — halfway through detail fade-out, bring splash back
+    // so the two overlap: detail dissolves into the returning BALANCE word
+    setTimeout(() => {
+      splash.classList.remove('hidden');
+
+      // Step 4 — once splash is fully back, sequence is done
+      setTimeout(() => {
+        sequenceRunning = false;
+        if (queuedTip) {
+          const next = queuedTip;
+          queuedTip = null;
+          runSequence(next);
+        }
+      }, FADE_MS);
+
+    }, FADE_MS * 0.5);
+
+  }, FADE_MS + hold);
+}
+
+// ── TEST / DEMO — remove before event ──────────────────────
+const TEST_ARTWORKS = [
+  'Open Secret #1', 'Open Secret #3', 'Open Secret #5',
+  'Open Secret #7', 'Open Secret #9', 'Open Secret #12',
+];
+let testCount = 0;
+
+function simulateTip(amount) {
+  const artwork = TEST_ARTWORKS[testCount % TEST_ARTWORKS.length];
+  testCount++;
+  const memos = [
+    'Beautiful work',
+    'This really moved me',
+    '',
+    'Thank you for making this',
+    'Incredible — I keep coming back to it',
+    '',
+    'Something I will not forget',
+  ];
+  const comment = memos[testCount % memos.length];
+  revealOnTip({ amount, artwork, comment });
+}
+
+// ── BOOT ───────────────────────────────────────────────────
+pollAll();
+setInterval(pollAll, CONFIG.POLL_INTERVAL);
+</script>
+</body>
+</html>
