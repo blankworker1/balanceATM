@@ -1,4 +1,4 @@
-# ⚡ BALANCE ATM
+# ⚡ SATS ATM
 
 A self-contained coin-to-Lightning machine built with an ESP32, HX-916 coin acceptor, and an Android tablet. Insert coins, enter your Blink username, receive sats instantly in your Lightning wallet.
 
