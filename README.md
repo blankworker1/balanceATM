@@ -1,7 +1,7 @@
 # ⚡ Sats ATM
 
 
-[SatsATM Logo](https://github.com/blankworker1/SatsATM/blob/main/satsatm_logo.svg)
+[SatsATM Logo](https://emerald-real-clownfish-172.mypinata.cloud/ipfs/bafkreibnfqjqom5cb5j6hae2ubfx37y2rf6iou2b7iuziwxymkkwkihnrq)
 
 A self-contained coin-to-Lightning machine built with an ESP32, HX-916 coin acceptor, and an Android tablet. Insert coins, enter your Blink username, receive sats instantly in your Lightning wallet.
 
